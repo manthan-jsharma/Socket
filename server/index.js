@@ -33,6 +33,8 @@ async function startServer() {
   const userCooldowns = new Map();
 
   io.on("connection", async (socket) => {
+    io.emit("online_count", io.engine.clientsCount);
+
     const rawGrid = await client.hGetAll("pixel_grid_v2");
     const gridArray = Array(TOTAL_PIXELS).fill(null);
     Object.keys(rawGrid).forEach((index) => {
@@ -51,11 +53,12 @@ async function startServer() {
         "pixel_grid_v2",
         index.toString()
       );
+
       if (currentPixelJson) {
         const currentPixel = JSON.parse(currentPixelJson);
         const timeDiff = now - currentPixel.capturedAt;
 
-        if (timeDiff > LOCK_TIME_MS) {
+        if (timeDiff < LOCK_TIME_MS) {
           return;
         }
       }
@@ -74,6 +77,15 @@ async function startServer() {
       userCooldowns.set(socket.id, now);
 
       io.emit("pixel_update", { index, ...pixelData });
+
+      const updatedGrid = [...gridArray];
+      updatedGrid[index] = pixelData;
+      io.emit("leaderboard_update", calculateLeaderboard(updatedGrid));
+    });
+    socket.on("disconnect", () => {
+      userCooldowns.delete(socket.id);
+
+      io.emit("online_count", io.engine.clientsCount);
     });
   });
 
