@@ -120,22 +120,42 @@ function App() {
               gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))`,
               width: "min(90vw, 650px)",
               height: "min(90vw, 650px)",
-              boxShadow: "0 0 50px -12px rgba(124, 58, 237, 0.25)", // Purple glow
+              boxShadow: "0 0 50px -12px rgba(124, 58, 237, 0.25)",
             }}
           >
-            {grid.map((cell, index) => (
-              <button
-                key={index}
-                onMouseDown={() => handleCapture(index)}
-                onMouseEnter={(e) => {
-                  if (e.buttons === 1) handleCapture(index);
-                }}
-                className="w-full h-full rounded-sm transition-colors duration-200 hover:brightness-125 focus:outline-none"
-                style={{
-                  backgroundColor: cell ? cell.color : "#1e293b",
-                }}
-              />
-            ))}
+            {grid.map((cell, index) => {
+              const isLocked = cell && Date.now() - cell.capturedAt > 5000;
+
+              return (
+                <button
+                  key={index}
+                  onMouseDown={() => {
+                    setIsPainting(true);
+                    handleCapture(index);
+                  }}
+                  onMouseUp={() => setIsPainting(false)}
+                  onMouseEnter={() => isPainting && handleCapture(index)}
+                  className={`w-full h-full rounded-sm transition-all duration-200 focus:outline-none relative overflow-hidden ${
+                    isLocked
+                      ? "cursor-not-allowed opacity-80"
+                      : "hover:brightness-125 cursor-pointer"
+                  }`}
+                  style={{
+                    backgroundColor: cell ? cell.color : "#1e293b",
+
+                    border: isLocked
+                      ? "2px solid rgba(255, 215, 0, 0.5)"
+                      : "none",
+                  }}
+                >
+                  {isLocked && (
+                    <span className="absolute inset-0 flex items-center justify-center text-[8px] opacity-50">
+                      🔒
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
 
           <div className="text-center mt-4 text-slate-500 text-xs">

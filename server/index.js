@@ -16,8 +16,9 @@ const io = new Server(server, {
 const GRID_SIZE = 20;
 const TOTAL_PIXELS = GRID_SIZE * GRID_SIZE;
 const COOLDOWN_MS = 200;
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
+const LOCK_TIME_MS = 5000;
 
+const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
 const client = createClient({ url: REDIS_URL });
 client.on("error", (err) => console.log("Redis Client Error", err));
 
@@ -25,17 +26,10 @@ async function startServer() {
   await client.connect();
   console.log("Connected to Redis");
 
-  const exists = await client.exists("pixel_grid");
-  if (!exists) {
-    console.log("Initializing new grid in Redis...");
-  }
-
   const userCooldowns = new Map();
 
   io.on("connection", async (socket) => {
-    console.log(`User connected: ${socket.id}`);
     const rawGrid = await client.hGetAll("pixel_grid");
-
     const gridArray = Array(TOTAL_PIXELS).fill(null);
     Object.keys(rawGrid).forEach((index) => {
       gridArray[parseInt(index)] = JSON.parse(rawGrid[index]);
@@ -47,17 +41,35 @@ async function startServer() {
     socket.on("capture", async ({ index, color }) => {
       const now = Date.now();
       const lastMove = userCooldowns.get(socket.id) || 0;
-
       if (now - lastMove < COOLDOWN_MS) return;
-      if (index < 0 || index >= TOTAL_PIXELS) return;
 
-      const pixelData = JSON.stringify({ owner: socket.id, color });
+      const currentPixelJson = await client.hGet(
+        "pixel_grid",
+        index.toString()
+      );
+      if (currentPixelJson) {
+        const currentPixel = JSON.parse(currentPixelJson);
+        const timeDiff = now - currentPixel.capturedAt;
 
-      await client.hSet("pixel_grid", index.toString(), pixelData);
+        if (timeDiff > LOCK_TIME_MS) {
+          return;
+        }
+      }
 
+      const pixelData = {
+        owner: socket.id,
+        color,
+        capturedAt: now,
+      };
+
+      await client.hSet(
+        "pixel_grid",
+        index.toString(),
+        JSON.stringify(pixelData)
+      );
       userCooldowns.set(socket.id, now);
 
-      io.emit("pixel_update", { index, color, owner: socket.id });
+      io.emit("pixel_update", { index, ...pixelData });
     });
   });
 
@@ -66,6 +78,7 @@ async function startServer() {
     console.log(`SERVER RUNNING ON PORT ${PORT}`);
   });
 }
+
 function calculateLeaderboard(grid) {
   const scores = {};
   grid.forEach((cell) => {
