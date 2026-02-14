@@ -13,6 +13,7 @@ function App() {
   const [onlineCount, setOnlineCount] = useState(0);
   const [leaderboard, setLeaderboard] = useState([]);
   const [user] = useState(generateUser());
+  const [isPainting, setIsPainting] = useState(false);
 
   useEffect(() => {
     socket.on("init", (initialGrid) => setGrid(initialGrid));
