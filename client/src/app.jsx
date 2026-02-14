@@ -118,6 +118,7 @@ function App() {
           <div
             className="grid gap-px bg-slate-900 border border-white/10 p-2 rounded-xl shadow-2xl relative"
             style={{
+              display: "grid",
               gridTemplateColumns: `repeat(${GRID_SIZE}, minmax(0, 1fr))`,
               width: "min(90vw, 650px)",
               height: "min(90vw, 650px)",
