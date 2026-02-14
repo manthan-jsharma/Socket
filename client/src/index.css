@@ -1,0 +1,17 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer utilities {
+  .animate-ping-short {
+    animation: ping-short 0.3s cubic-bezier(0, 0, 0.2, 1) forwards;
+  }
+
+  @keyframes ping-short {
+    75%,
+    100% {
+      transform: scale(1.5);
+      opacity: 0;
+    }
+  }
+}
