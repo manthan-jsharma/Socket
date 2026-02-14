@@ -18,9 +18,13 @@ const TOTAL_PIXELS = GRID_SIZE * GRID_SIZE;
 const COOLDOWN_MS = 200;
 const LOCK_TIME_MS = 5000;
 
-const REDIS_URL = process.env.REDIS_URL || "redis://localhost:6379";
-const client = createClient({ url: REDIS_URL });
-client.on("error", (err) => console.log("Redis Client Error", err));
+const client = createClient({
+  url: process.env.REDIS_URL,
+  socket: {
+    tls: true,
+    rejectUnauthorized: false,
+  },
+});
 
 async function startServer() {
   await client.connect();
