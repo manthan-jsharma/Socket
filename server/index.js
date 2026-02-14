@@ -33,7 +33,7 @@ async function startServer() {
   const userCooldowns = new Map();
 
   io.on("connection", async (socket) => {
-    const rawGrid = await client.hGetAll("pixel_grid");
+    const rawGrid = await client.hGetAll("pixel_grid_v2");
     const gridArray = Array(TOTAL_PIXELS).fill(null);
     Object.keys(rawGrid).forEach((index) => {
       gridArray[parseInt(index)] = JSON.parse(rawGrid[index]);
@@ -48,7 +48,7 @@ async function startServer() {
       if (now - lastMove < COOLDOWN_MS) return;
 
       const currentPixelJson = await client.hGet(
-        "pixel_grid",
+        "pixel_grid_v2",
         index.toString()
       );
       if (currentPixelJson) {
@@ -67,7 +67,7 @@ async function startServer() {
       };
 
       await client.hSet(
-        "pixel_grid",
+        "pixel_grid_v2",
         index.toString(),
         JSON.stringify(pixelData)
       );
